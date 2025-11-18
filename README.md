@@ -25,11 +25,13 @@ Install to your PATH (choose one):
 # User install (no sudo)
 mkdir -p ~/.local/bin
 ln -sf /path/to/dclean/dclean ~/.local/bin/dclean
+# Or copy
+cp /path/to/dclean/dclean ~/.local/bin/dclean
 # Ensure ~/.local/bin is in PATH (uncomment your shell):
 # bash:
-# echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
 # zsh:
-# echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
 ```
 
 ```bash
@@ -62,6 +64,12 @@ sudo cp /path/to/dclean/dclean /usr/local/bin/dclean
 # Optional: user install (add ~/.local/bin to PATH)
 mkdir -p ~/.local/bin
 ln -sf /path/to/dclean/dclean ~/.local/bin/dclean
+# Or copy
+cp /path/to/dclean/dclean ~/.local/bin/dclean
+# Ensure ~/.local/bin is in PATH (uncomment your shell):
+# bash:
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
+# zsh:
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
 ```
 
