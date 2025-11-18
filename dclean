@@ -1,0 +1,208 @@
+#!/usr/bin/env bash
+########################################################################
+# dclean
+#
+# A cross-platform (Linux and macOS) Docker cleanup utility that removes:
+#   1) All containers (running or stopped)
+#   2) All volumes (including named volumes)
+#   3) All images
+#   4) Builder cache
+#
+# USAGE
+#   dclean                 # same as 'dclean all'
+#   dclean all             # containers → volumes → images → cache
+#   dclean containers      # stop and remove all containers (force)
+#   dclean volumes         # remove all volumes
+#   dclean images          # remove all images (force)
+#   dclean cache           # prune builder cache
+#   dclean help | -h | --help
+#
+# EXAMPLES
+#   dclean
+#   dclean all
+#   dclean containers
+#   dclean images
+#   dclean volumes
+#   dclean cache
+#
+# SAFETY & BEHAVIOR
+# - This script is intentionally DESTRUCTIVE and IRREVERSIBLE.
+# - It uses 'set -euo pipefail' to fail fast on unexpected errors.
+# - It checks for Docker CLI availability before running any subcommand.
+# - It prevents common "requires at least 1 argument" errors by:
+#     * First collecting IDs into a variable
+#     * Only invoking docker subcommands if IDs exist
+# - It avoids GNU-only flags like 'xargs -r' for macOS compatibility, and
+#   instead guards before piping to xargs and uses chunking with 'xargs -n 100'.
+# - Non-critical failures are tolerated with '|| true' in deletion steps
+#   so that a single deletion failure does not abort the entire cleanup.
+#
+# ORDER OF OPERATIONS FOR 'all'
+#   containers → volumes → images → cache
+#
+# EXIT CODES
+#   0   success
+#   1   generic error
+#   2   usage error (unknown subcommand)
+#   127 docker CLI missing
+#
+# REQUIREMENTS
+# - Docker CLI must be installed and available on PATH.
+# - For most operations, the Docker daemon must be reachable.
+#
+# LICENSE
+# - MIT License. See accompanying LICENSE file for details.
+#
+# AUTHOR
+# - Author: Craig J. Lipinski
+########################################################################
+
+set -euo pipefail
+
+readonly SCRIPT_NAME="dclean"
+readonly SCRIPT_VERSION="1.0.0"
+
+# Print a brief usage summary.
+usage() {
+	cat <<'EOF'
+Usage:
+  dclean [all|containers|images|volumes|cache|help]
+
+Description:
+  Cleans Docker containers, volumes, images, and build cache. This is
+  destructive and irreversible.
+
+Commands:
+  all          Run all cleanup steps in order: containers → volumes → images → cache
+  containers   Stop and remove all containers (running or stopped) using 'docker rm -f'
+  volumes      Remove all volumes using 'docker volume rm'
+  images       Remove all images using 'docker rmi -f'
+  cache        Prune the build cache using 'docker builder prune -f'
+  help         Show this help message
+
+Examples:
+  dclean
+  dclean all
+  dclean containers
+  dclean images
+  dclean volumes
+  dclean cache
+EOF
+}
+
+# Print a message to stderr and exit with the provided code.
+die() {
+	echo "[$SCRIPT_NAME] error: $*" >&2
+	exit 1
+}
+
+# Check that the Docker CLI is available on PATH.
+need_docker() {
+	if ! command -v docker >/dev/null 2>&1; then
+		echo "Docker CLI not found on PATH. Please install Docker Desktop or Docker Engine." >&2
+		exit 127
+	fi
+}
+
+# Remove all containers (running or stopped).
+# Implementation notes:
+# - We first collect container IDs via 'docker ps -aq'.
+# - If no IDs exist, we print a friendly message and no-op.
+# - We print IDs to stdout and pass them to 'xargs -n 100 docker rm -f' to
+#   limit the number of arguments per invocation for robustness.
+remove_containers() {
+	local ids
+	ids="$(docker ps -aq || true)"
+	if [ -n "${ids}" ]; then
+		echo "[${SCRIPT_NAME}] Removing all containers..."
+		# Using chunked removal to avoid "argument list too long" issues.
+		printf '%s\n' "${ids}" | xargs -n 100 docker rm -f || true
+		echo "[${SCRIPT_NAME}] Containers removed."
+	else
+		echo "[${SCRIPT_NAME}] No containers to remove."
+	fi
+}
+
+# Remove all volumes.
+# Notes:
+# - Similar empty-check and chunking strategy as containers.
+remove_volumes() {
+	local ids
+	ids="$(docker volume ls -q || true)"
+	if [ -n "${ids}" ]; then
+		echo "[${SCRIPT_NAME}] Removing all volumes..."
+		printf '%s\n' "${ids}" | xargs -n 100 docker volume rm || true
+		echo "[${SCRIPT_NAME}] Volumes removed."
+	else
+		echo "[${SCRIPT_NAME}] No volumes to remove."
+	fi
+}
+
+# Remove all images (forced).
+# Notes:
+# - We force removal with '-f' to ensure dangling/unused images are cleared.
+remove_images() {
+	local ids
+	ids="$(docker images -q || true)"
+	if [ -n "${ids}" ]; then
+		echo "[${SCRIPT_NAME}] Removing all images..."
+		printf '%s\n' "${ids}" | xargs -n 100 docker rmi -f || true
+		echo "[${SCRIPT_NAME}] Images removed."
+	else
+		echo "[${SCRIPT_NAME}] No images to remove."
+	fi
+}
+
+# Prune the builder cache.
+# Notes:
+# - Prefer the specific 'docker builder prune -f' if available.
+# - Fallback to broader 'docker system prune -f' if the builder command fails.
+remove_cache() {
+	echo "[${SCRIPT_NAME}] Pruning builder cache..."
+	docker builder prune -f >/dev/null 2>&1 || docker system prune -f >/dev/null 2>&1 || true
+	echo "[${SCRIPT_NAME}] Builder cache pruned."
+}
+
+main() {
+	# Default to 'all' if no subcommand is provided.
+	local cmd="${1:-all}"
+
+	case "${cmd}" in
+		all)
+			need_docker
+			remove_containers
+			remove_volumes
+			remove_images
+			remove_cache
+			;;
+		containers)
+			need_docker
+			remove_containers
+			;;
+		volumes)
+			need_docker
+			remove_volumes
+			;;
+		images)
+			need_docker
+			remove_images
+			;;
+		cache)
+			need_docker
+			remove_cache
+			;;
+		help|-h|--help)
+			usage
+			;;
+		*)
+			echo "Unknown subcommand: ${cmd}" >&2
+			echo >&2
+			usage
+			exit 2
+			;;
+	esac
+}
+
+main "$@"
+
+
