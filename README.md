@@ -22,9 +22,19 @@ chmod +x /path/to/dclean/dclean
 
 Install to your PATH (choose one):
 ```bash
-# Symlink (recommended)
-sudo ln -sf /path/to/dclean/dclean /usr/local/bin/dclean
+# User install (no sudo)
+mkdir -p ~/.local/bin
+ln -sf /path/to/dclean/dclean ~/.local/bin/dclean
+# Ensure ~/.local/bin is in PATH (uncomment your shell):
+# bash:
+# echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
+# zsh:
+# echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+```
 
+```bash
+# System-wide (requires sudo)
+sudo ln -sf /path/to/dclean/dclean /usr/local/bin/dclean
 # Or copy
 sudo cp /path/to/dclean/dclean /usr/local/bin/dclean
 ```
@@ -42,11 +52,17 @@ chmod +x /path/to/dclean/dclean
 
 Install to your PATH (choose one):
 ```bash
-# Symlink (recommended)
+# System-wide (recommended)
 sudo ln -sf /path/to/dclean/dclean /usr/local/bin/dclean
-
 # Or copy
 sudo cp /path/to/dclean/dclean /usr/local/bin/dclean
+```
+
+```bash
+# Optional: user install (add ~/.local/bin to PATH)
+mkdir -p ~/.local/bin
+ln -sf /path/to/dclean/dclean ~/.local/bin/dclean
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
 ```
 
 Verify:
