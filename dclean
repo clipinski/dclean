@@ -9,7 +9,7 @@
 #   4) Builder cache
 #
 # USAGE
-#   dclean                 # same as 'dclean all'
+#   dclean                 # shows usage/help
 #   dclean all             # containers → volumes → images → cache
 #   dclean containers      # stop and remove all containers (force)
 #   dclean volumes         # remove all volumes
@@ -71,6 +71,9 @@ Usage:
 Description:
   Cleans Docker containers, volumes, images, and build cache. This is
   destructive and irreversible.
+
+Notes:
+  Running without arguments shows this help.
 
 Commands:
   all          Run all cleanup steps in order: containers → volumes → images → cache
@@ -164,8 +167,12 @@ remove_cache() {
 }
 
 main() {
-	# Default to 'all' if no subcommand is provided.
-	local cmd="${1:-all}"
+	# Show usage if no subcommand is provided.
+	if [ "$#" -eq 0 ]; then
+		usage
+		exit 2
+	fi
+	local cmd="$1"
 
 	case "${cmd}" in
 		all)

@@ -80,7 +80,7 @@ dclean help
 
 ## Usage
 ```bash
-dclean                 # same as 'dclean all'
+dclean                 # show usage/help
 dclean all             # containers → volumes → images → cache
 dclean containers      # stop and remove all containers (force)
 dclean volumes         # remove all volumes
